@@ -27,6 +27,12 @@
     </dependency>
   </dependencies>
 
+  <dependency>
+      <groupId>com.github.docker-java</groupId>
+      <artifactId>docker-java-transport-httpclient5</artifactId>
+      <version>3.3.0</version> <!-- Use the latest version -->
+  </dependency>
+  
   <build>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
