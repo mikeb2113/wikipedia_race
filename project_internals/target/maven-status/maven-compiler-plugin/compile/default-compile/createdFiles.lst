@@ -1,2 +1,4 @@
-DatabaseInitializer.class
 com/example/App.class
+ParquetToText.class
+ParquetToText$1.class
+com/example/DatabaseInitializer.class

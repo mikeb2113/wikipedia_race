@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
-Test set: DatabaseInitializerTest
+Test set: ParquetToTextTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.234 s - in DatabaseInitializerTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.478 s - in ParquetToTextTest

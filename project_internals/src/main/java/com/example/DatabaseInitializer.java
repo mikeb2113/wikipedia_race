@@ -1,3 +1,4 @@
+package com.example;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
