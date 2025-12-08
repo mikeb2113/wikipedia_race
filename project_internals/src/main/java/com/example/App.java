@@ -1,16 +1,20 @@
 package com.example;
 
-/**
- * Hello world!
- *
- */
-public class App 
-{
+
+public class App {
     public static void main(String[] args) {
+        System.out.println("[APP] Starting application...");
+
         try {
+            System.out.println("[APP] Initializing database...");
             DatabaseInitializer.initialize();
-            // then start websocket server / HTTP server / whatever
+            System.out.println("[APP] Database initialization complete.");
+
+            // Placeholder for future server start
+            System.out.println("[APP] Ready for next steps (server, API, etc.)");
+
         } catch (Exception e) {
+            System.err.println("[APP] Fatal error:");
             e.printStackTrace();
             System.exit(1);
         }
