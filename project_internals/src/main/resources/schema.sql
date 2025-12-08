@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS games (
     start_time      TIMESTAMP NOT NULL,
     end_time        TIMESTAMP,
     start_article_id BIGINT NOT NULL REFERENCES articles(article_id),
-    state           VARCHAR NOT NULL DEFAULT 'PENDING',
+    "state"           VARCHAR NOT NULL DEFAULT 'PENDING',
     created_by      BIGINT REFERENCES players(player_id),
     target_article_id BIGINT REFERENCES articles(article_id),
     winner_id       BIGINT REFERENCES players(player_id)
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS games (
 -- moves
 CREATE TABLE IF NOT EXISTS moves (
     move_id        BIGINT PRIMARY KEY DEFAULT nextval('seq_moves'),
-    timestamp      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "timestamp"      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     move_seq       INTEGER NOT NULL,
     move_status    VARCHAR NOT NULL,
     from_article_id BIGINT NOT NULL REFERENCES articles(article_id),
@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS visited_articles (
 -- audit log
 CREATE TABLE IF NOT EXISTS audit_log (
     id        BIGINT PRIMARY KEY DEFAULT nextval('seq_audit'),
-    at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "at"        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     player_id BIGINT REFERENCES players(player_id),
-    action    VARCHAR NOT NULL,
-    target    VARCHAR,
+    "action"    VARCHAR NOT NULL,
+    "target"    VARCHAR,
     details   VARCHAR
 );
 
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE TABLE IF NOT EXISTS rate_limit_log (
     player_id     BIGINT NOT NULL REFERENCES players(player_id),
     window_start  TIMESTAMP NOT NULL,
-    event         VARCHAR NOT NULL,
+    "event"         VARCHAR NOT NULL,
     window_seconds INTEGER NOT NULL,
     count         INTEGER NOT NULL,
     PRIMARY KEY (player_id, window_start, event)

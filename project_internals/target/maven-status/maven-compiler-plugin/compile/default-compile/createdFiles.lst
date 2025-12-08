@@ -1,4 +1,6 @@
+com/example/DbInspector.class
 com/example/App.class
 ParquetToText.class
 ParquetToText$1.class
+com/example/entry_point.class
 com/example/DatabaseInitializer.class
