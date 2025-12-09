@@ -1,10 +1,18 @@
 FROM eclipse-temurin:21-jre
+WORKDIR /app
 
-WORKDIR /project_internals/app
+# Copy main app jar
+COPY target/wikipedia_race-1.0-SNAPSHOT.jar app.jar
 
-COPY /project_internals/target/wikipedia_race-1.0-SNAPSHOT.jar app.jar
+# Copy all dependency jars (including DuckDB)
+COPY target/dependency ./dependency
 
-ENTRYPOINT ["java", "-cp", "app.jar", "com.example.App"]
+# Use -cp to include app.jar + all deps
+ENTRYPOINT ["java", "-cp", "app.jar:dependency/*", "com.example.App"]
 
-#arg 4 com.example.
-#arg 3 app
+#FROM eclipse-temurin:21-jre
+#WORKDIR /app
+
+#COPY target/wikipedia_race-1.0-SNAPSHOT.jar app.jar
+
+#ENTRYPOINT ["java", "-jar", "app.jar"]

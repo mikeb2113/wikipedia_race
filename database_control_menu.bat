@@ -4,38 +4,58 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Ensure we are in the script directory (project root)
+REM Ensure script runs from its own directory
 cd /d "%~dp0"
+
+set IMAGE_NAME=docker-java-server
+set CONTAINER_NAME=wikirace_server
 
 :menu
 echo.
 echo ========= Wikipedia Race Menu =========
-echo 1^) Run App (via Maven)
-echo 2^) Print DuckDB contents (via DbInspector)
-echo 3^) Exit
+echo 1^) Build ^& Run server in Docker
+echo 2^) Run App locally via Maven ^(no Docker^)
+echo 3^) Print DuckDB contents ^(via DbInspector^)
+echo 4^) Stop Docker server ^& Exit
 echo ========================================
-set /p choice=Enter choice: 
+choice /c 1234 /n /m "Enter choice: "
 
-if "%choice%"=="1" goto run_app
-if "%choice%"=="2" goto print_db
-if "%choice%"=="3" goto end
-echo Invalid option.
+if errorlevel 4 goto stop_docker
+if errorlevel 3 goto db_print
+if errorlevel 2 goto run_maven
+if errorlevel 1 goto docker_run
+
 goto menu
 
-:run_app
+:docker_run
+echo.
+echo 🧱 Building JAR...
+pushd project_internals
+call mvn -q -DskipTests package dependency:copy-dependencies
+popd
+
+echo 🐳 Building Docker image: %IMAGE_NAME% ...
+docker build -t %IMAGE_NAME% project_internals
+
+echo 🚀 Running Docker container '%CONTAINER_NAME%' on port 8080...
+docker run --rm -p 8080:8080 --name %CONTAINER_NAME% %IMAGE_NAME%
+goto menu
+
+:run_maven
+echo.
 echo 🚀 Running com.example.App via Maven...
-mvn -f project_internals\pom.xml -q exec:java -Dexec.mainClass=com.example.App
+call mvn -f project_internals/pom.xml -q exec:java -Dexec.mainClass=com.example.App
 goto menu
 
-:print_db
-echo 📄 Printing DuckDB contents with DbInspector...
-
-REM NOTE: Windows uses semicolon ";" not colon ":" for classpath separation
-java -cp "project_internals\target\classes;project_internals\target\dependency\*" com.example.DbInspector
-
+:db_print
+echo.
+echo 📄 Printing DuckDB contents using DbInspector...
+java -cp "project_internals/target/classes;project_internals/target/dependency/*" com.example.DbInspector
 goto menu
 
-:end
+:stop_docker
+echo.
+echo 🛑 Stopping Docker container '%CONTAINER_NAME%' (if running)...
+docker stop %CONTAINER_NAME% >nul 2>&1
 echo Goodbye!
-endlocal
 exit /b 0
