@@ -29,6 +29,13 @@ goto menu
 
 :docker_run
 echo.
+echo Finding free port starting at 8080...
+
+REM Call findport.bat and capture its output into PORT
+for /f "usebackq delims=" %%P in (`call "%~dp0findport.bat"`) do set "PORT=%%P"
+
+echo Found port: %PORT%
+
 echo 🧱 Building JAR...
 pushd project_internals
 call mvn -q -DskipTests package dependency:copy-dependencies
@@ -37,8 +44,9 @@ popd
 echo 🐳 Building Docker image: %IMAGE_NAME% ...
 docker build -t %IMAGE_NAME% project_internals
 
-echo 🚀 Running Docker container '%CONTAINER_NAME%' on port 8080...
-docker run --rm -p 8080:8080 --name %CONTAINER_NAME% %IMAGE_NAME%
+echo 🚀 Running Docker container '%CONTAINER_NAME%' on port %PORT%...
+docker run --rm -p %PORT%:8080 --name %CONTAINER_NAME% %IMAGE_NAME%
+
 goto menu
 
 :run_maven

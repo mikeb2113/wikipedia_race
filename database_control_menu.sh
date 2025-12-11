@@ -23,22 +23,25 @@ while true; do
 
     case "$choice" in
         1)
+            chmod +x findport.sh
+            port=$(./findport.sh)
+            echo "found port: $port"
             echo "🧱 Building JAR..."
             (cd project_internals && mvn -q -DskipTests package)
 
             echo "🐳 Building Docker image: ${IMAGE_NAME}..."
             docker build -t "${IMAGE_NAME}" project_internals
 
-            echo "🚀 Running Docker container '${CONTAINER_NAME}' on port 8080..."
-            docker run --rm -p 8080:8080 --name "${CONTAINER_NAME}" "${IMAGE_NAME}"
+            echo "🚀 Running Docker container '${CONTAINER_NAME}' on port $port..."
+            docker run --rm -p $port:8080 --name "${CONTAINER_NAME}" "${IMAGE_NAME}"
             ;;
         2)
             echo "🚀 Running com.example.App via Maven (host JVM)..."
-            mvn -f project_internals/pom.xml -q exec:java -Dexec.mainClass=com.example.App
+            mvn -f project_internals/pom.xml -q exec:java -Dexec.mainClass=com.example.server.App
             ;;
         3)
             echo "📄 Printing DuckDB contents with DbInspector..."
-            java -cp "project_internals/target/classes:project_internals/target/dependency/*" com.example.DbInspector
+            java -cp "project_internals/target/classes:project_internals/target/dependency/*" com.example.persistence.DbInspector
             ;;
         4)
             echo "🛑 Stopping Docker container '${CONTAINER_NAME}' (if running)..."

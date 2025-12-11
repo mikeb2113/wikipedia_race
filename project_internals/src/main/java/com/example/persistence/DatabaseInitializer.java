@@ -1,4 +1,4 @@
-package com.example;
+package com.example.persistence;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

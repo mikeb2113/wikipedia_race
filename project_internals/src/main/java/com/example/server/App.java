@@ -1,8 +1,9 @@
-package com.example;
+package com.example.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import com.example.DatabaseInitializer;
+import com.example.persistence.DatabaseInitializer;
+import com.example.websocket.ServerMain;
 //import com.example.Docker_setup;
 
 public class App {
@@ -10,6 +11,7 @@ public class App {
         try {
             System.out.println("[APP] Initializing database...");
             DatabaseInitializer.initialize();
+            ServerMain.main(args);
             System.out.println("[APP] Database initialization complete.");
 
             // Placeholder for future server start
