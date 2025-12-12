@@ -1,5 +1,6 @@
 package com.example.websocket;
 import com.example.websocket.ProtocolMapper;
+import java.time.LocalDateTime;
 //import jakarta.websocket.Session;
 // or use Object if you want it to be framework-agnostic
 
@@ -24,10 +25,12 @@ public String handleIncoming(String json, Object sessionContext) {
     String response;
 
     switch (msg.type) {
+        //DONE
         case PING:
             response = JsonSupport.encode(WsResponses.pong(msg.requestId));
             break;
 
+        //FUNCTIONAL
         case CREATE_GAME:
             response = handleCreateGame(msg);
             break;
@@ -62,10 +65,31 @@ public String handleIncoming(String json, Object sessionContext) {
     private String handleCreateGame(WsEnvelope msg) {
         /*GameConfig config = ProtocolMapper.toGameConfig(msg);*/
         /*GameState state = gameService.createGame(msg.playerId, config);*/
+        //String type = "CREATE_GAME";
         String config = null;
-        String state = null;
+        String state = "PENDING";
         return JsonSupport.encode(ProtocolMapper.toGameCreatedMessage(msg.requestId, state));
     }
+    /*
+    Create sample game like:
+        const ws = new WebSocket("ws://localhost:8080");
+
+        ws.onopen = () => {
+        console.log("connected");
+
+        ws.send(JSON.stringify({
+            type: "CREATE_GAME",
+            requestId: "create_game_test_1",
+            playerId: "player-123",
+            gameId: null,
+            payload: {}
+        }));
+        };
+
+        ws.onmessage = (event) => {
+        console.log("server says:", event.data);
+        };
+    */
 
     private String handleJoinGame(WsEnvelope msg) {
         /*GameState state = gameService.joinGame(msg.playerId, msg.gameId);*/
@@ -85,6 +109,6 @@ public String handleIncoming(String json, Object sessionContext) {
 
         /*GameState state = gameService.applyMove(msg.playerId, msg.gameId, fromId, toId);*/
         String state = null;
-        return JsonSupport.encode(ProtocolMapper.toMoveResultMessage(msg.requestId, state, msg.playerId));
+        return JsonSupport.encode(ProtocolMapper.toMoveResultMessage(msg.requestId, state, msg.playerId,fromId,toId));
     }
 }

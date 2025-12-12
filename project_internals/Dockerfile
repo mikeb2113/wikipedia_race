@@ -8,7 +8,7 @@ COPY target/wikipedia_race-1.0-SNAPSHOT.jar app.jar
 COPY target/dependency ./dependency
 
 # Use -cp to include app.jar + all deps
-ENTRYPOINT ["java", "-cp", "app.jar:dependency/*", "com.example.App"]
+ENTRYPOINT ["java", "-cp", "app.jar:dependency/*", "com.example.server.App"]
 
 #FROM eclipse-temurin:21-jre
 #WORKDIR /app
