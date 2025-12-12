@@ -1,2 +1,4 @@
 target/
-project_internals/target/
+*.class
+*.db
+*.duckdb
