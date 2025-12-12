@@ -1,35 +1,25 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal EnableExtensions EnableDelayedExpansion
 
-REM Optional args:
-REM   %1 = base port (default 8080)
-REM   %2 = increment (default 1)
+REM Args: base_port increment
+set "BASE_PORT=%~1"
+if not defined BASE_PORT set "BASE_PORT=8080"
 
-if "%~1"=="" (
-    set "BASE_PORT=8080"
-) else (
-    set "BASE_PORT=%~1"
+set "INCREMENT=%~2"
+if not defined INCREMENT set "INCREMENT=1"
+
+set "PORT=%BASE_PORT%"
+
+where netstat >nul 2>&1 || (
+  endlocal & exit /b 1
 )
 
-if "%~2"=="" (
-    set "INCREMENT=1"
-) else (
-    set "INCREMENT=%~2"
+:CHECK_PORT
+netstat -ano | findstr /I /C:":%PORT% " | findstr /I "LISTENING" >nul
+if not errorlevel 1 (
+  set /a PORT+=INCREMENT
+  goto CHECK_PORT
 )
 
-set "port=%BASE_PORT%"
-
-:check_port
-REM Check if port is in use (LISTENING on TCP)
-netstat -ano -p TCP | findstr /R /C:":%port% .*LISTENING" >nul 2>&1
-if %errorlevel%==0 (
-    REM Port is in use → bump and retry
-    set /a port=%port%+%INCREMENT%
-    goto :check_port
-)
-
-REM Print free port as plain number
-echo %port%
-
-endlocal
+endlocal & set "FOUND_PORT=%PORT%"
 exit /b 0
