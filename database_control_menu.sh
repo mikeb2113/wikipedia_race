@@ -17,7 +17,8 @@ while true; do
     echo "1) Build & Run server in Docker"
     echo "2) Run App locally via Maven (no Docker)"
     echo "3) Print DuckDB contents (via DbInspector)"
-    echo "4) Stop Docker server & Exit"
+    echo "4) Build WikiLink graph"
+    echo "5) Stop Docker server & Exit"
     echo "========================================"
     read -p "Enter choice: " choice
 
@@ -39,11 +40,16 @@ while true; do
             echo "🚀 Running com.example.App via Maven (host JVM)..."
             mvn -f project_internals/pom.xml -q exec:java -Dexec.mainClass=com.example.server.App
             ;;
-        3)
+        3) 
             echo "📄 Printing DuckDB contents with DbInspector..."
             java -cp "project_internals/target/classes:project_internals/target/dependency/*" com.example.persistence.DbInspector
             ;;
         4)
+            echo "🛠️ Building WikiLink Graph..."
+            java -cp "project_internals/target/classes:project_internals/target/dependency/*" \
+                com.example.persistence.BuildGameGraphTool 2 5 3 100
+            ;;
+        5)
             echo "🛑 Stopping Docker container '${CONTAINER_NAME}' (if running)..."
             docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
             echo "Goodbye!"

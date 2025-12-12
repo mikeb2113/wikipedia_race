@@ -1,0 +1,1 @@
+DTOs are used to define the data that a client will need to be sent upon JSON requests. They contain no logic, but keep requests consistent.
