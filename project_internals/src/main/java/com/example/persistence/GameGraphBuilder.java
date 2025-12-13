@@ -1,5 +1,6 @@
 package com.example.persistence;
 
+import java.sql.Connection;
 import java.util.*;
 
 public class GameGraphBuilder {
@@ -13,16 +14,13 @@ public class GameGraphBuilder {
         this.visitedRepo = visitedRepo;
     }
 
-    /**
-     * Build a BFS "tree" of reachable articles for a game, starting
-     * from startArticleId, and populate visited_articles.
-     */
     public void buildInitialGraphForGame(
+            Connection conn,
             long gameId,
             long startArticleId,
             int maxDepth,
             int maxNodes
-    ) {
+    ) throws Exception{
         Queue<Long> queue = new ArrayDeque<>();
         Map<Long, Integer> depth = new HashMap<>();
 
@@ -36,18 +34,14 @@ public class GameGraphBuilder {
             int d = depth.get(current);
 
             // Record that this article is part of this game's world
-            visitedRepo.insertIfAbsent(gameId, current);
+            visitedRepo.insertIfAbsent(conn, gameId, current);
 
             nodesVisited++;
             if (nodesVisited >= maxNodes) break;
 
-            if (d >= maxDepth) {
-                continue; // don't expand further
-            }
+            if (d >= maxDepth) continue;
 
-            // Get outgoing neighbors from links table (populate links if needed)
-            List<Long> neighbors = linksRepo.getNeighbors(current);
-
+            List<Long> neighbors = linksRepo.getNeighbors(conn, current);
             for (long neighbor : neighbors) {
                 if (!depth.containsKey(neighbor)) {
                     depth.put(neighbor, d + 1);
