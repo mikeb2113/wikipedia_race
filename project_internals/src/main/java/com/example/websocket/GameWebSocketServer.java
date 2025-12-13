@@ -12,24 +12,26 @@ import java.net.InetSocketAddress;
 public class GameWebSocketServer extends WebSocketServer {
 
     private final WebSocketMessageHandler handler;
+    private final ConnectionRegistry registry = new ConnectionRegistry();
 
     public GameWebSocketServer(int port) {
         super(new InetSocketAddress(port));
 
         /*GameService gameService = new InMemoryGameService();*/ // your core logic impl
-        this.handler = new WebSocketMessageHandler(/*gameService*/);
+        this.handler = new WebSocketMessageHandler();
     }
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         System.out.println("WebSocket opened: " + conn.getRemoteSocketAddress());
-        // you can store conn in some registry if you want to broadcast later
+        // nothing to bind yet; we learn player/game from messages
     }
 
     @Override
     public void onMessage(WebSocket conn, String message) {
         try {
-            String responseJson = handler.handleIncoming(message, conn);
+            // Let handler process, but ALSO allow it to broadcast via registry
+            String responseJson = handler.handleIncoming(message, conn, registry);
 
             if (responseJson != null) {
                 conn.send(responseJson);
@@ -43,7 +45,7 @@ public class GameWebSocketServer extends WebSocketServer {
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         System.out.println("WebSocket closed: " + reason + " from " + conn.getRemoteSocketAddress());
-        // TODO: inform GameService that this player disconnected if needed
+        registry.removeConn(conn); // ✅ cleanup
     }
 
     @Override

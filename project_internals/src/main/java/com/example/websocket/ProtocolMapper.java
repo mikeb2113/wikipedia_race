@@ -9,17 +9,24 @@ public class ProtocolMapper {
     /**
      * Produces a minimal "game created" message.
      */
-    public static Map<String, Object> toGameCreatedMessage(String requestId, Object state) {
-        Map<String, Object> msg = new HashMap<>();
-        //LocalDateTime startTime = LocalDateTime.now();
-        msg.put("type", "GAME_CREATED");
-        msg.put("requestId", requestId);
-        msg.put("state", state); // placeholder — typically you'd map fields
-        //msg.put("startTime",startTime);
-        msg.put("startArticleId",5);
-        msg.put("endArticleId",7);
-        return msg;
-    }
+    public static Map<String, Object> toGameCreatedMessage(String requestId, Object state, String gameId, String playerId) {
+    Map<String, Object> msg = new HashMap<>();
+    msg.put("type", "GAME_CREATED");
+    msg.put("requestId", requestId);
+    msg.put("gameId", gameId);
+    msg.put("playerId", playerId);
+    msg.put("state", state);
+    return msg;
+}
+
+public static Map<String, Object> toGameCreatedEvent(String requestId, String gameId, String playerId) {
+    Map<String, Object> msg = new HashMap<>();
+    msg.put("type", "GAME_CREATED_EVENT");
+    msg.put("requestId", requestId);
+    msg.put("gameId", gameId);
+    msg.put("playerId", playerId);
+    return msg;
+}
     /**
      * Produces a minimal "game state" message.
      */
@@ -52,17 +59,30 @@ public class ProtocolMapper {
         return msg;
     }
 
+    public static Map<String, Object> toPlayerJoinedMessage(String requestId, String playerId, String gameId) {
+    Map<String, Object> msg = new HashMap<>();
+    msg.put("type", "PLAYER_JOINED");
+    msg.put("requestId", requestId);
+    msg.put("playerId", playerId);
+    msg.put("gameId", gameId);
+    return msg;
+}
+
     /**
      * Produces a minimal "move result" message.
      */
-    public static Map<String, Object> toMoveResultMessage(String requestId, Object state, String playerId,long fromId,long toId) {
+    public static Map<String, Object> toMoveResultMessage(
+            String requestId, Object state, String playerId,
+            String gameId, long fromId, long toId
+    ) {
         Map<String, Object> msg = new HashMap<>();
         msg.put("type", "MOVE_RESULT");
         msg.put("requestId", requestId);
         msg.put("playerId", playerId);
+        msg.put("gameId", gameId);
         msg.put("state", state);
-        msg.put("fromArticleId",fromId);
-        msg.put("toArticleId",toId);
+        msg.put("fromArticleId", fromId);
+        msg.put("toArticleId", toId);
         return msg;
     }
 
