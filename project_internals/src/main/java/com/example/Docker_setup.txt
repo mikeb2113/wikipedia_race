@@ -1,0 +1,94 @@
+package com.example;
+import java.io.IOException;
+import java.net.ServerSocket;
+
+public class Docker_setup {
+    private static final int START_PORT = 8080;
+    private static final int MAX_PORT = 8100;
+    private static final String IMAGE_NAME = "docker-java-server";
+    private static final String DOCKER = "/usr/bin/docker";
+    private static int Port = findFreePort(START_PORT, MAX_PORT);
+
+    public static int getPort(){
+        return Port;
+    }
+    public static String getImageName(){
+        return IMAGE_NAME;
+    }
+    
+    private static boolean isDockerAvailable() {
+    try {
+        Process proc = new ProcessBuilder("docker", "--version")
+                .redirectErrorStream(true)
+                .start();
+        int exit = proc.waitFor();
+        return exit == 0;
+    } catch (Exception e) {
+        return false;
+    }
+}
+
+        private static void docker_build(){
+            if (!isDockerAvailable()) {
+                System.err.println("[DOCKER] Docker CLI not found in this environment. Skipping image build.");
+                return;
+            }
+         try {
+            String[] cmd = { DOCKER, "build", "-t", IMAGE_NAME, "project_internals" };
+            System.out.println("Attempting to Build Docker...");
+            Process proc = new ProcessBuilder(cmd)
+                    .inheritIO() // optional: pipe output to console
+                    .start();
+
+            proc.waitFor();  // wait for docker to finish
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void docker_run() {
+        try {
+            if (Port == -1) {
+                System.err.println("No free port found between " + START_PORT + " and " + MAX_PORT);
+                return;
+            }
+
+            System.out.println("Using port " + String.valueOf(Port) + " for Docker server...");
+
+            String[] cmd = {
+                DOCKER, "run",
+                "--rm",
+                "--name", "wikirace_server",
+                "-p", Port + ":8080",   // hostPort:containerPort
+                IMAGE_NAME
+            };
+            Process proc = new ProcessBuilder(cmd)
+                    .inheritIO()
+                    .start();
+
+            proc.waitFor();  // wait for container to exit
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static int findFreePort(int start, int max) {
+        for (int port = start; port <= max; port++) {
+            if (!isPortInUse(port)) {
+                return port;
+            }
+        }
+        return -1; // none found
+    }
+
+    private static boolean isPortInUse(int port) {
+        try (ServerSocket socket = new ServerSocket(port)) {
+            socket.setReuseAddress(true);
+            return false; // was able to bind: port free
+        } catch (IOException e) {
+            return true;  // couldn't bind: port in use
+        }
+    }
+}
