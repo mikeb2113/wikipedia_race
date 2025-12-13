@@ -27,8 +27,8 @@ public class BuildGameGraphTool {
             ensureGameExists(conn, gameId);
             ensureArticleExists(conn, startArticleId);
 
-            LinksRepository linksRepo = new LinksRepositoryImpl(conn);
-            VisitedArticlesRepository visitedRepo = new VisitedArticlesRepositoryImpl(conn);
+            LinksRepository linksRepo = new LinksRepositoryImpl();
+            VisitedArticlesRepository visitedRepo = new VisitedArticlesRepositoryImpl();
             GameGraphBuilder builder = new GameGraphBuilder(linksRepo, visitedRepo);
 
             System.out.printf(
@@ -36,7 +36,7 @@ public class BuildGameGraphTool {
                 gameId, startArticleId, maxDepth, maxNodes
             );
 
-            builder.buildInitialGraphForGame(gameId, startArticleId, maxDepth, maxNodes);
+            builder.buildInitialGraphForGame(conn,gameId, startArticleId, maxDepth, maxNodes);
             printVisitedArticles(conn, gameId);
         }
     }

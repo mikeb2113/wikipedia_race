@@ -2,6 +2,7 @@ package com.example.websocket;
 import com.example.websocket.ConnectionRegistry;
 import com.example.websocket.ProtocolMapper;
 import main.java.com.example.GameState;
+import main.java.com.example.core.domain.GameCommandService;
 
 //import java.net.http.WebSocket;
 import org.java_websocket.WebSocket;
@@ -14,8 +15,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class WebSocketMessageHandler {
+
     private static final long IDEMPOTENCY_TTL_MS = 30_000; // 30s is plenty for retries
     private final ConcurrentMap<RequestKey, CachedResponse> responseCache = new ConcurrentHashMap<>();
+    private final GameCommandService gameService;
+
+    /*public WebSocketMessageHandler(String message, WebSocket conn, ConnectionRegistry registry) {
+        //this.gameService = gameService;
+    }*/
+
+    public WebSocketMessageHandler(GameCommandService gameService) {
+        this.gameService = gameService;
+    }
 
     private String cachedOrNull(WsEnvelope msg) {
         if (msg == null || msg.playerId == null || msg.requestId == null || msg.type == null)
@@ -58,13 +69,6 @@ private void validateCommon(WsEnvelope msg) {
 }
 
     //private final GameService gameService;
-
-    public WebSocketMessageHandler(String message, WebSocket conn, ConnectionRegistry registry) {
-        //this.gameService = gameService;
-    }
-    public WebSocketMessageHandler() {
-        
-    }
 
     /**
      * Handle a single incoming JSON message.
