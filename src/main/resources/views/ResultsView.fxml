@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ui.controllers.ResultsController"
+      alignment="CENTER"
+      spacing="25"
+      prefWidth="500"
+      prefHeight="400"
+      styleClass="panel"
+      maxWidth="420">
+
+    <padding>
+        <Insets top="30" right="30" bottom="30" left="30"/>
+    </padding>
+
+    <Label text="Post Game Stats"
+           styleClass="title" />
+
+    <GridPane hgap="20" vgap="16" alignment="CENTER">
+
+        <Label text="Time Elapsed"
+               styleClass="subtitle"
+               GridPane.rowIndex="0"
+               GridPane.columnIndex="0" />
+
+        <Label fx:id="timeLabel"
+               text="3:47"
+               styleClass="article-accent"
+               GridPane.rowIndex="0"
+               GridPane.columnIndex="1" />
+
+        <Label text="Total Clicks"
+               styleClass="subtitle"
+               GridPane.rowIndex="1"
+               GridPane.columnIndex="0" />
+
+        <Label fx:id="clicksLabel"
+               text="7"
+               styleClass="article-accent"
+               GridPane.rowIndex="1"
+               GridPane.columnIndex="1" />
+
+        <Label text="Score"
+               styleClass="subtitle"
+               GridPane.rowIndex="2"
+               GridPane.columnIndex="0" />
+
+        <Label fx:id="scoreLabel"
+               text="+2"
+               styleClass="article-accent"
+               GridPane.rowIndex="2"
+               GridPane.columnIndex="1" />
+
+    </GridPane>
+
+    <VBox spacing="10" alignment="CENTER">
+        <Button text="Play Again"
+                onAction="#handlePlayAgain"
+                styleClass="primary-button" />
+
+        <Button text="Exit to Menu"
+                onAction="#handleExitToMenu"
+                styleClass="secondary-button" />
+    </VBox>
+
+</VBox>

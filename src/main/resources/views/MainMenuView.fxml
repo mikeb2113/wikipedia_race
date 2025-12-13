@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ui.controllers.MainMenuController"
+            prefWidth="600"
+            prefHeight="400">
+
+    <center>
+        <VBox alignment="CENTER" spacing="25">
+
+            <VBox alignment="CENTER" spacing="6">
+                <Label text="Wikipedia Race" styleClass="title" />
+                <Label fx:id="welcomeLabel" text="Welcome!" styleClass="subtitle" />
+            </VBox>
+
+            <VBox alignment="CENTER" spacing="12">
+                <Button text="Join Lobby" onAction="#handleJoinLobby" />
+                <Button text="Create Lobby" onAction="#handleCreateLobby" />
+            </VBox>
+
+            <HBox alignment="CENTER" spacing="20">
+                <Button text="How to Play"
+                        onAction="#handleHowToPlay"
+                        styleClass="secondary-button" />
+
+                <Button text="Log Out"
+                        onAction="#handleLogout"
+                        styleClass="secondary-button" />
+            </HBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>

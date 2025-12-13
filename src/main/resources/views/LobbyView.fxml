@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ui.controllers.LobbyController"
+      alignment="CENTER"
+      spacing="20"
+      prefWidth="600"
+      prefHeight="400"
+      styleClass="panel">
+
+    <Label fx:id="lobbyCodeLabel"
+           text="Lobby Code: XXXX"
+           styleClass="title" />
+
+    <VBox alignment="CENTER" spacing="8">
+        <Label text="Starting Article"
+               styleClass="subtitle" />
+        <Label fx:id="startArticleLabel"
+               styleClass="article-accent" />
+
+        <Label text="Target Article"
+               styleClass="subtitle" />
+        <Label fx:id="targetArticleLabel"
+               styleClass="article-accent" />
+    </VBox>
+
+    <VBox alignment="CENTER"
+          spacing="10"
+          styleClass="panel">
+
+        <HBox spacing="12" alignment="CENTER">
+            <Label fx:id="player1Label" />
+            <Label fx:id="player1Status" />
+        </HBox>
+
+        <HBox spacing="12" alignment="CENTER">
+            <Label fx:id="player2Label" />
+            <Label fx:id="player2Status" />
+        </HBox>
+
+    </VBox>
+
+    <VBox alignment="CENTER" spacing="10">
+        <Button text="Ready"
+                onAction="#handleReady"
+                styleClass="primary-button" />
+
+        <Button text="Leave Lobby"
+                onAction="#handleLeaveLobby"
+                styleClass="secondary-button" />
+    </VBox>
+
+</VBox>
