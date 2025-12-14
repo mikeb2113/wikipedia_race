@@ -17,7 +17,14 @@ public class DuckDbGameRepository implements GameRepository {
     public DuckDbGameRepository(MembershipRepository membershipRepo) {
         this.membershipRepo = membershipRepo;
     }
-
+public void startGame(Connection conn, long gid) throws Exception {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "UPDATE games SET state = 'ACTIVE' WHERE game_id = ? AND state <> 'ACTIVE'"
+    )) {
+        ps.setLong(1, gid);
+        ps.executeUpdate();
+    }
+}
     @Override
     public long insertGame(Connection conn, long startArticleId, Long targetArticleId,
                            Long createdByPlayerId, String state) throws Exception {
@@ -102,6 +109,18 @@ public class DuckDbGameRepository implements GameRepository {
 
         return new GameState(Long.toString(gameId), state, startedAtMs, players);
     }
+    public String getState(Connection conn, long gid) throws Exception {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT state FROM games WHERE game_id = ?"
+    )) {
+        ps.setLong(1, gid);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (!rs.next()) throw new IllegalArgumentException("Unknown gameId: " + gid);
+            return rs.getString(1);
+        }
+    }
+}
+
     @Override
     public long getStartArticleId(Connection conn, long gameId) throws Exception {
         try (PreparedStatement ps = conn.prepareStatement(
@@ -114,6 +133,30 @@ public class DuckDbGameRepository implements GameRepository {
             }
         }
     }
+
+    // returns null if target_article_id is null
+public Long getTargetArticleId(Connection conn, long gid) throws Exception {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT target_article_id FROM games WHERE game_id = ?"
+    )) {
+        ps.setLong(1, gid);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (!rs.next()) throw new IllegalArgumentException("Unknown gameId: " + gid);
+            long v = rs.getLong(1);
+            return rs.wasNull() ? null : Long.valueOf(v);
+        }
+    }
+}
+
+public void finishGame(Connection conn, long gid, long winnerPid) throws Exception {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "UPDATE games SET state='FINISHED', end_time=CURRENT_TIMESTAMP, winner_id=? WHERE game_id=?"
+    )) {
+        ps.setLong(1, winnerPid);
+        ps.setLong(2, gid);
+        ps.executeUpdate();
+    }
+}
     @Override
 public void tryFinishIfTargetReached(Connection conn, long gameId, long winnerId, long toArticleId) throws Exception {
     try (PreparedStatement ps = conn.prepareStatement(

@@ -20,6 +20,17 @@ public class DuckDbMembershipRepository implements MembershipRepository {
             ps.executeUpdate();
         }
     }
+    public boolean isInGame(Connection conn, long gid, long pid) throws Exception {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT 1 FROM plays WHERE game_id = ? AND player_id = ? AND left_at IS NULL"
+    )) {
+        ps.setLong(1, gid);
+        ps.setLong(2, pid);
+        try (ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        }
+    }
+}
 @Override
 public void incrementStepsTaken(Connection conn, long gameId, long playerId) throws Exception {
     try (PreparedStatement ps = conn.prepareStatement(

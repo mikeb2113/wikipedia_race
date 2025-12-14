@@ -87,54 +87,48 @@ long pid = members.ensurePlayer(conn, playerIdString);
     });
 }
 
-    @Override
-    public GameState joinGame(String gameIdString, String playerIdString) {
-        requireNonBlank(gameIdString, "gameId");
-        requireNonBlank(playerIdString, "playerId");
+public GameState joinGame(String playerIdString, String gameIdString) {
+    requireNonBlank(playerIdString, "playerId");
+    requireNonBlank(gameIdString, "gameId");
 
-        return tx.inTransaction(conn -> {
-            long gid = Ids.parseLongId(gameIdString, "gameId");
-            long pid = Ids.parseLongOrLookupPlayerId(conn, playerIdString);
+    return tx.inTransaction(conn -> {
+        long gid = Long.parseLong(gameIdString);
 
-            if (!games.gameExists(conn, gid)) {
-                throw new IllegalArgumentException("Game not found: " + gid);
-            }
+        if (!games.gameExists(conn, gid)) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameIdString);
+        }
 
-            String status = games.getGameState(conn, gid);
-            if ("FINISHED".equals(status)) {
-                throw new IllegalArgumentException("Game already finished");
-            }
+        long pid = members.ensurePlayer(conn, playerIdString);
+        members.addPlayer(conn, gid, pid);
 
-            members.addPlayer(conn, gid, pid);
-            return games.loadGameState(conn, gid);
-        });
-    }
+        return games.loadGameState(conn, gid);
+    });
+}
 
-    @Override
-    public GameState startGame(String gameIdString, String playerIdString) {
-        requireNonBlank(gameIdString, "gameId");
-        requireNonBlank(playerIdString, "playerId");
+public GameState startGame(String playerIdString, String gameIdString) {
+    requireNonBlank(playerIdString, "playerId");
+    requireNonBlank(gameIdString, "gameId");
 
-        return tx.inTransaction(conn -> {
-            long gid = Ids.parseLongId(gameIdString, "gameId");
-            long pid = Ids.parseLongOrLookupPlayerId(conn, playerIdString);
+    return tx.inTransaction(conn -> {
+        long gid = Long.parseLong(gameIdString);
 
-            if (!games.gameExists(conn, gid)) {
-                throw new IllegalArgumentException("Game not found: " + gid);
-            }
+        if (!games.gameExists(conn, gid)) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameIdString);
+        }
 
-            if (!members.isMember(conn, gid, pid)) {
-                throw new IllegalArgumentException("Player not in game");
-            }
+        long pid = members.ensurePlayer(conn, playerIdString);
 
-            String status = games.getGameState(conn, gid);
-            if ("STARTED".equals(status)) return games.loadGameState(conn, gid);
-            if ("FINISHED".equals(status)) throw new IllegalArgumentException("Game already finished");
+        // Optional but recommended: only players in the game can start it
+        if (!members.isInGame(conn, gid, pid)) {
+            throw new IllegalArgumentException("Player is not in this game");
+        }
 
-            games.setGameStarted(conn, gid);
-            return games.loadGameState(conn, gid);
-        });
-    }
+        // Transition to ACTIVE (idempotent)
+        games.startGame(conn, gid);
+
+        return games.loadGameState(conn, gid);
+    });
+}
 
 @Override
 public MoveResult applyMove(String gameIdStr, String playerIdStr, long fromId, long toId) {
@@ -147,7 +141,10 @@ public MoveResult applyMove(String gameIdStr, String playerIdStr, long fromId, l
 
         // 1) started?
         String gameState = games.getGameState(conn, gid);
-        if (!"STARTED".equals(gameState)) throw new IllegalArgumentException("Game not started");
+        if (!"ACTIVE".equalsIgnoreCase(gameState) && !"STARTED".equalsIgnoreCase(gameState)) {
+            throw new IllegalArgumentException("Game not started (state=" + gameState + ")");
+        }
+
 
         // 2) membership?
         if (!members.isMember(conn, gid, pid)) throw new IllegalArgumentException("Player not in game");

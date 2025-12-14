@@ -11,6 +11,7 @@ public interface GameRepository {
     void setGameStarted(Connection conn, long gameId)throws Exception; // sets start_time=now and state='STARTED'
     GameState loadGameState(Connection conn, long gameId)throws Exception;
     long getStartArticleId(Connection conn, long gameId) throws Exception;
+    void startGame(Connection conn, long gid) throws Exception;
     void tryFinishIfTargetReached(Connection conn,
                                   long gameId,
                                   long winnerId,
