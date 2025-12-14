@@ -34,8 +34,12 @@ while true; do
             docker build -t "${IMAGE_NAME}" project_internals
 
             echo "🚀 Running Docker container '${CONTAINER_NAME}' on port $port..."
-            docker run --rm -p $port:8080 --name "${CONTAINER_NAME}" "${IMAGE_NAME}"
-            ;;
+            mkdir -p data
+            docker run --rm \
+            -p $port:8080 \
+            -v "$(pwd)/data:/app/data" \
+            --name "${CONTAINER_NAME}" \
+            "${IMAGE_NAME}"            ;;
         2)
             echo "🚀 Running com.example.App via Maven (host JVM)..."
             mvn -f project_internals/pom.xml -q exec:java -Dexec.mainClass=com.example.server.App

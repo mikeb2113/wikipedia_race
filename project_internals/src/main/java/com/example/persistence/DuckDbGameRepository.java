@@ -1,6 +1,6 @@
 package com.example.persistence;
 
-import main.java.com.example.core.domain.GameState;
+import com.example.core.domain.GameState;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

@@ -1,12 +1,12 @@
-package main.java.com.example.core.domain;
-import main.java.com.example.core.domain.GameState;
+package com.example.core.domain;
+import com.example.core.domain.GameState;
 
 public class MoveResult {
     public final String gameId;
     public final String playerId;
     public final long fromArticleId;
     public final long toArticleId;
-    public final GameState state; // updated state snapshot (or null if you prefer)
+    public final GameState state;
 
     public MoveResult(String gameId, String playerId, long fromArticleId, long toArticleId, GameState state) {
         this.gameId = gameId;

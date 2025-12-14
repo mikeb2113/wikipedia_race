@@ -1,20 +1,34 @@
 package com.example.server;
 
-import java.io.IOException;
-import java.net.ServerSocket;
 import com.example.persistence.DatabaseInitializer;
 import com.example.websocket.ServerMain;
-//import com.example.Docker_setup;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class App {
     public static void main(String[] args) {
         try {
+            // 🔎 Show working directory
+            System.out.println("[APP] CWD = " + System.getProperty("user.dir"));
+
+            // 🔎 Show expected DB paths
+            System.out.println("[APP] Expected data dir = " + Path.of("./data").toAbsolutePath());
+            System.out.println("[APP] Expected db file = " + Path.of("./data/wikirace.duckdb").toAbsolutePath());
+
             System.out.println("[APP] Initializing database...");
             DatabaseInitializer.initialize();
-            ServerMain.main(args);
-            System.out.println("[APP] Database initialization complete.");
 
-            // Placeholder for future server start
+            // 🔎 Check if DB file exists after init
+            System.out.println(
+                "[APP] DB file exists after init? " +
+                Files.exists(Path.of("./data/wikirace.duckdb"))
+            );
+
+            // Start server
+            ServerMain.main(args);
+
+            System.out.println("[APP] Database initialization complete.");
             System.out.println("[APP] Ready for next steps (server, API, etc.)");
 
         } catch (Exception e) {

@@ -19,6 +19,9 @@ public final class DatabaseInitializer {
     public static Connection getConnection() throws SQLException {
         String url = "jdbc:duckdb:./data/wikirace.duckdb";
         System.out.println("[DB] Opening DuckDB connection at: " + url);
+        System.out.println("[DB] CWD=" + System.getProperty("user.dir"));
+        System.out.println("[DB] DB_URL=" + DB_URL);
+        System.out.println("[DB] DB_FILE_ABS=" + java.nio.file.Path.of("./data/wikirace.duckdb").toAbsolutePath());
         return DriverManager.getConnection(url);
     }
 

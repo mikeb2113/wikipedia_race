@@ -43,7 +43,34 @@ public void incrementStepsTaken(Connection conn, long gameId, long playerId) thr
             }
         }
     }
+@Override
+public long ensurePlayer(Connection conn, String username) throws Exception {
 
+    // 1) Try to find existing player
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT player_id FROM players WHERE username = ?"
+    )) {
+        ps.setString(1, username);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    // 2) Insert new player
+    try (PreparedStatement ps = conn.prepareStatement(
+            "INSERT INTO players (username) VALUES (?) RETURNING player_id"
+    )) {
+        ps.setString(1, username);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (!rs.next()) {
+                throw new IllegalStateException("Failed to insert player: " + username);
+            }
+            return rs.getLong(1);
+        }
+    }
+}
     @Override
     public List<String> listUsernames(Connection conn, long gameId) throws Exception {
         List<String> out = new ArrayList<>();

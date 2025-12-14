@@ -1,9 +1,12 @@
 package com.example.websocket;
 import com.example.websocket.ConnectionRegistry;
 import com.example.websocket.ProtocolMapper;
-import main.java.com.example.GameState;
-import main.java.com.example.core.domain.GameCommandService;
 
+import com.example.core.domain.CreateGameResult;
+
+import com.example.core.domain.GameState;
+import com.example.core.domain.GameCommandService;
+import com.example.core.domain.MoveResult;
 //import java.net.http.WebSocket;
 import org.java_websocket.WebSocket;
 import java.time.LocalDateTime;
@@ -179,31 +182,81 @@ public String handleIncoming(String json, Object sessionContext, ConnectionRegis
     return response;
 }
 
-    private String handleCreateGame(WsEnvelope msg, WebSocket conn, ConnectionRegistry registry) {
-    // validateCreateGame(msg) if you want (requestId/playerId)
+ private String handleCreateGame(WsEnvelope msg, WebSocket conn, ConnectionRegistry registry) {
 
-    // TODO: GameService should generate this and persist it
-    String gameId = (msg.gameId != null && !msg.gameId.isBlank())
-            ? msg.gameId
-            : "game-" + System.currentTimeMillis();
+    System.out.println("[WS][CREATE_GAME] req=" + msg.requestId
+            + " player=" + msg.playerId
+            + " gameId=" + msg.gameId
+            + " payload=" + msg.payload);
 
-    String state = "PENDING";
+    try {
+        // Validate payload
+        if (msg.payload == null
+                || !msg.payload.containsKey("startTitle")
+                || !msg.payload.containsKey("targetTitle")) {
 
-    // Ensure registry knows this connection is in the new game
-    registry.bindPlayer(conn, msg.playerId);
-    registry.bindGame(conn, gameId);
+            System.out.println("[WS][CREATE_GAME] missing keys. payload keys="
+                    + (msg.payload == null ? "null" : msg.payload.keySet()));
 
-    // 1) Broadcast event: GAME_CREATED (useful if you support lobby / spectators)
-    String createdEventJson = JsonSupport.encode(
-        ProtocolMapper.toGameCreatedEvent(msg.requestId, gameId, msg.playerId)
-    );
-    int sent = registry.broadcastToGame(gameId, createdEventJson);
-    System.out.println("[BROADCAST] GAME_CREATED game=" + gameId + " sent=" + sent);
+            return JsonSupport.encode(
+                    ProtocolMapper.toErrorMessage(
+                            msg.requestId,
+                            "CREATE_GAME missing payload.startTitle or payload.targetTitle",
+                            msg.gameId
+                    )
+            );
+        }
 
-    // 2) Return GAME_CREATED response to the creator (includes gameId)
-    return JsonSupport.encode(
-        ProtocolMapper.toGameCreatedMessage(msg.requestId, state, gameId, msg.playerId)
-    );
+        String startTitle = String.valueOf(msg.payload.get("startTitle"));
+        String targetTitle = String.valueOf(msg.payload.get("targetTitle"));
+
+        System.out.println("[WS][CREATE_GAME] startTitle=" + startTitle + " targetTitle=" + targetTitle);
+        System.out.println("[WS][CREATE_GAME] calling gameService.createGame(...)");
+
+        // ✅ Persist via domain service
+        CreateGameResult created = gameService.createGame(msg.playerId, startTitle, targetTitle);
+
+        System.out.println("[WS][CREATE_GAME] created gameId=" + created.gameId
+                + " state=" + created.state);
+
+        String gameId = created.gameId;
+        GameState state = created.state;
+
+        // Bind socket to player + game
+        registry.bindPlayer(conn, msg.playerId);
+        registry.bindGame(conn, gameId);
+
+        // Optional broadcast
+        String createdEventJson = JsonSupport.encode(
+                ProtocolMapper.toGameCreatedEvent(msg.requestId, gameId, msg.playerId)
+        );
+        registry.broadcastToGame(gameId, createdEventJson);
+
+        // Response to creator
+        return JsonSupport.encode(
+                ProtocolMapper.toGameCreatedMessage(msg.requestId, state, gameId, msg.playerId)
+        );
+
+    } catch (IllegalArgumentException e) {
+        // Expected “client-ish” error (missing player, bad pages, etc.)
+        System.err.println("[WS][CREATE_GAME] REJECTED: " + e.getMessage());
+        return JsonSupport.encode(
+                ProtocolMapper.toErrorMessage(msg.requestId, e.getMessage(), msg.gameId)
+        );
+
+    } catch (Exception e) {
+        // Unexpected bug / DB issue — print full stack trace
+        System.err.println("[WS][CREATE_GAME] FAILED: " + e.getClass().getName() + ": " + e.getMessage());
+        e.printStackTrace();
+
+        return JsonSupport.encode(
+                ProtocolMapper.toErrorMessage(
+                        msg.requestId,
+                        "CREATE_GAME failed: " + e.getMessage(),
+                        msg.gameId
+                )
+        );
+    }
 }
 
     public String handleJoinGame(WsEnvelope msg, WebSocket conn, ConnectionRegistry registry) {
@@ -264,28 +317,80 @@ public String handleIncoming(String json, Object sessionContext, ConnectionRegis
     return startedJson;
     }
 
-    private String handlePlayerMove(WsEnvelope msg, WebSocket conn, ConnectionRegistry registry) {
-    // Optional: validateMove(msg) (playerId, gameId, payload fields)
+private String handlePlayerMove(WsEnvelope msg, WebSocket conn, ConnectionRegistry registry) {
     System.out.println("[APPLY MOVE] player=" + msg.playerId + " req=" + msg.requestId);
+
+    // Require fromArticleId + toArticleId in payload
+    if (msg.payload == null
+            || !msg.payload.containsKey("fromArticleId")
+            || !msg.payload.containsKey("toArticleId")) {
+        return JsonSupport.encode(
+            ProtocolMapper.toErrorMessage(
+                msg.requestId,
+                "PLAYER_MOVE missing payload.fromArticleId or payload.toArticleId",
+                msg.gameId
+            )
+        );
+    }
 
     long fromId = ((Number) msg.payload.get("fromArticleId")).longValue();
     long toId   = ((Number) msg.payload.get("toArticleId")).longValue();
 
-    // TODO: Object state = gameService.applyMove(msg.playerId, msg.gameId, fromId, toId);
-    Object state = null; // placeholder for now
+    try {
+        // Apply move via domain service (throws on failure)
+        MoveResult result = gameService.applyMove(
+            msg.gameId,
+            msg.playerId,
+            fromId,
+            toId
+        );
 
-    // 1) Broadcast updated state to everyone (EVENT)
-    String stateJson = JsonSupport.encode(
-        ProtocolMapper.toGameStateMessage(msg.requestId, state, msg.gameId, msg.playerId)
-    );
+        // 1) Broadcast updated game state to everyone
+        String stateJson = JsonSupport.encode(
+            ProtocolMapper.toGameStateMessage(
+                msg.requestId,
+                result.state,     // FIELD, not method
+                msg.gameId,
+                msg.playerId
+            )
+        );
 
-    int sent = registry.broadcastToGame(msg.gameId, stateJson);
-    System.out.println("[BROADCAST] GAME_STATE game=" + msg.gameId + " sent=" + sent);
+        int sent = registry.broadcastToGame(msg.gameId, stateJson);
+        System.out.println("[BROADCAST] GAME_STATE game=" + msg.gameId + " sent=" + sent);
 
-    // 2) Return move result to mover (RESPONSE)
-    return JsonSupport.encode(
-        ProtocolMapper.toMoveResultMessage(msg.requestId, state, msg.playerId,msg.gameId, fromId, toId)
-    );
+        // 2) Return move result to the mover
+        return JsonSupport.encode(
+            ProtocolMapper.toMoveResultMessage(
+                msg.requestId,
+                result.state,         // FIELD
+                msg.playerId,
+                msg.gameId,
+                result.fromArticleId, // FIELD
+                result.toArticleId    // FIELD
+            )
+        );
+
+    } catch (IllegalArgumentException e) {
+        // Expected domain failure (invalid move, not started, etc.)
+        return JsonSupport.encode(
+            ProtocolMapper.toErrorMessage(
+                msg.requestId,
+                e.getMessage(),
+                msg.gameId
+            )
+        );
+
+    } catch (Exception e) {
+        // Unexpected server error
+        System.err.println("[MOVE ERROR] " + e.getMessage());
+        return JsonSupport.encode(
+            ProtocolMapper.toErrorMessage(
+                msg.requestId,
+                "Move failed: " + e.getMessage(),
+                msg.gameId
+            )
+        );
+    }
 }
 
 private void validateStartGame(WsEnvelope msg) {
