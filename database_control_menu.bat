@@ -75,18 +75,20 @@ set "CONTAINER_NAME=wikirace_server"
 echo.
 echo ========= Wikipedia Race Menu =========
 echo 1^) Build ^& Run server in Docker
-echo 2^) Run App locally via Maven (no Docker)
-echo 3^) Print DuckDB contents (DbInspector)
-echo 4^) Build WikiLink graph
-echo 5^) Stop Docker server ^& Exit
+echo 2^) Run GUI locally (JavaFX) + start Docker server
+echo 3^) Run App locally via Maven (no Docker)
+echo 4^) Print DuckDB contents (DbInspector)
+echo 5^) Build WikiLink graph
+echo 6^) Stop Docker server ^& Exit
 echo =======================================
 set /p choice=Enter choice:
 
 if "%choice%"=="1" goto DOCKER
-if "%choice%"=="2" goto MAVEN
-if "%choice%"=="3" goto INSPECT
-if "%choice%"=="4" goto GRAPH
-if "%choice%"=="5" goto EXIT
+if "%choice%"=="2" goto GUI_DOCKER
+if "%choice%"=="3" goto MAVEN
+if "%choice%"=="4" goto INSPECT
+if "%choice%"=="5" goto GRAPH
+if "%choice%"=="6" goto EXIT
 
 echo Invalid option.
 goto MENU
@@ -136,8 +138,88 @@ if errorlevel 1 (
 )
 
 echo [DOCKER] Running container "%CONTAINER_NAME%" on port %PORT%...
-docker run --rm -p %PORT%:8080 --name "%CONTAINER_NAME%" "%IMAGE_NAME%"
-echo [DEBUG] docker run exited (errorlevel=%errorlevel%)
+docker run --rm ^
+  -p %port%:8080 ^
+  -v "%cd%\data:/app/data" ^
+  --name "%CONTAINER_NAME%" ^
+  "%IMAGE_NAME%"echo [DEBUG] docker run exited (errorlevel=%errorlevel%)
+goto MENU
+
+:GUI_DOCKER
+echo [GUI+DOCKER] Starting Docker server (detached) then launching GUI...
+
+REM --- Find free port (same as DOCKER) ---
+echo [DEBUG] Finding free port...
+call "%~dp0findport.bat" 8080 1
+if errorlevel 1 (
+  echo [ERROR] findport.bat failed
+  set "FAIL=1"
+  goto END
+)
+
+if not defined FOUND_PORT (
+  echo [ERROR] FOUND_PORT was empty
+  set "FAIL=1"
+  goto END
+)
+
+set "PORT=%FOUND_PORT%"
+echo [INFO] Using port %PORT%
+
+REM Write port for GUI to read
+echo %PORT%> .wikirace_port
+echo [INFO] Wrote port to %cd%\.wikirace_port
+
+REM Ensure data directory exists
+if not exist "data" mkdir data
+
+REM --- Build jar ---
+echo [BUILD] Building project (package + dependencies)...
+pushd project_internals >nul
+call mvn -q -DskipTests package dependency:copy-dependencies
+if errorlevel 1 (
+  echo [ERROR] Maven build failed
+  popd >nul
+  set "FAIL=1"
+  goto END
+)
+popd >nul
+
+REM --- Build docker image ---
+echo [DOCKER] Building image %IMAGE_NAME%...
+docker build -t "%IMAGE_NAME%" project_internals
+if errorlevel 1 (
+  echo [ERROR] Docker build failed
+  set "FAIL=1"
+  goto END
+)
+
+REM --- Start docker container detached ---
+echo [DOCKER] Starting container "%CONTAINER_NAME%" on port %PORT% (detached)...
+docker rm -f "%CONTAINER_NAME%" >nul 2>&1
+
+docker run --rm -d ^
+  -p %PORT%:8080 ^
+  -v "%cd%\data:/app/data" ^
+  --name "%CONTAINER_NAME%" ^
+  "%IMAGE_NAME%"
+
+if errorlevel 1 (
+  echo [ERROR] Docker run failed
+  set "FAIL=1"
+  goto END
+)
+
+REM Small wait so WS is ready (deadline-simple)
+timeout /t 1 /nobreak >nul
+
+REM --- Run GUI ---
+echo [GUI] Running ui.ScreenTestApp via Maven...
+call mvn -f project_internals\pom.xml -q exec:java -Dexec.mainClass=ui.ScreenTestApp
+
+echo [GUI] GUI exited. Stopping Docker container...
+docker stop "%CONTAINER_NAME%" >nul 2>&1
+
 goto MENU
 
 :MAVEN

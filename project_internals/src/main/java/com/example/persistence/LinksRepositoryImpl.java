@@ -3,6 +3,7 @@ package com.example.persistence;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,4 +36,18 @@ public class LinksRepositoryImpl implements LinksRepository {
             }
         }
     }
+    @Override
+public void insertLink(Connection conn, long fromId, long toId) {
+    final String sql =
+        "INSERT INTO links (from_article_id, to_article_id) VALUES (?, ?) " +
+        "ON CONFLICT DO NOTHING";
+
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setLong(1, fromId);
+        ps.setLong(2, toId);
+        ps.executeUpdate();
+    } catch (SQLException e) {
+        throw new RuntimeException("Failed to insert link " + fromId + "->" + toId, e);
+    }
+}
 }

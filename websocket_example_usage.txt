@@ -1,0 +1,75 @@
+const WS_PORT = 8081;
+const playerId = "michael";
+const startTitle = "Albert Einstein";
+const targetTitle = "Physics";
+const gameId = "1"; // change if you want to test another existing game
+
+// ---- helpers ----
+function send(msg) {
+  console.log("➡️ sending:", msg);
+  ws.send(JSON.stringify(msg));
+}
+
+function reqId(prefix) {
+  return `${prefix}_${Date.now()}`;
+}
+
+// ---- connect ----
+window.ws = new WebSocket(`ws://localhost:${WS_PORT}`);
+
+ws.onopen = async () => {
+  console.log("✅ WebSocket connected");
+
+  // 1) CREATE_GAME
+  send({
+    type: "CREATE_GAME",
+    requestId: reqId("REQ_CREATE"),
+    playerId,
+    gameId: null,
+    payload: { startTitle, targetTitle }
+  });
+
+  // 2) JOIN_GAME
+  send({
+    type: "JOIN_GAME",
+    requestId: reqId("REQ_JOIN"),
+    playerId,
+    gameId,
+    payload: {}
+  });
+
+  // 3) START_GAME
+  send({
+    type: "START_GAME",
+    requestId: reqId("REQ_START"),
+    playerId,
+    gameId,
+    payload: {}
+  });
+
+  console.log("🧪 Now run: window.doMove(fromId, toId) after you see the current page id in logs.");
+};
+
+ws.onmessage = (e) => {
+  let msg;
+  try {
+    msg = JSON.parse(e.data);
+  } catch {
+    console.log("⬅️ server (raw):", e.data);
+    return;
+  }
+  console.log("⬅️ server:", msg);
+};
+
+ws.onerror = (e) => console.error("❌ WebSocket error", e);
+ws.onclose = () => console.log("🔌 WebSocket closed");
+
+window.doMove = (fromArticleId, toArticleId) => {
+  send({
+    type: "PLAYER_MOVE",
+    requestId: reqId("REQ_MOVE"),
+    playerId,
+    gameId,
+    payload: { fromArticleId, toArticleId }
+  });
+};

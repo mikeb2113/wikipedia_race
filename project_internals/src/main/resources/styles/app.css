@@ -1,0 +1,89 @@
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial;
+    -fx-background-color: #9FA0C3;
+}
+
+.label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #1C5D99;
+}
+
+.title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1C5D99;
+}
+
+.subtitle {
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1C5D99;
+}
+
+.panel {
+    -fx-background-color: #DDFFD9;
+    -fx-padding: 15;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 4);
+}
+
+.button {
+    -fx-background-color: #1C5D99;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16 8 16;
+    -fx-font-weight: bold;
+}
+
+.secondary-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1C5D99;
+    -fx-font-size: 12px;
+}
+
+
+.button:hover {
+    -fx-background-color: #174c7c;
+}
+
+.button:pressed {
+    -fx-background-color: #123a5e;
+}
+
+.status-success {
+    -fx-text-fill: #2e7d32;
+}
+
+.status-error {
+    -fx-text-fill: #b00020;
+}
+
+.text-field:disabled {
+    -fx-opacity: 1;
+    -fx-background-color: #f3f3f3;
+    -fx-text-fill: #1C5D99;
+}
+
+.article-accent {
+    -fx-font-style: italic;
+    -fx-text-fill: #1C5D99;
+}
+
+.primary-button {
+    -fx-background-color: #1C5D99;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.game-bar-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #DDFFD9;
+}
+
+.game-bar-text-accent {
+    -fx-font-size: 14px;
+    -fx-text-fill: #DDFFD9;
+    -fx-font-style: italic;
+    -fx-font-weight: bold;
+}
+

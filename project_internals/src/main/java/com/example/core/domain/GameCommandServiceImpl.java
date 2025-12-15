@@ -1,18 +1,29 @@
-package main.java.com.example.core.domain;
-import main.java.com.example.core.domain.GameState;
+package com.example.core.domain;
+
+import wiki.WikipediaService;
+
 import com.example.persistence.LinksRepository;
 import com.example.persistence.VisitedArticlesRepository;
 
-import com.example.persistence.Ids;
+import com.example.persistence.DuckDbMembershipRepository;
+import com.example.persistence.DuckDbMoveRepository;
+import com.example.persistence.DuckDbGameRepository;
+import com.example.persistence.LinksRepositoryImpl;
+import com.example.persistence.VisitedArticlesRepositoryImpl;
 
+import com.example.persistence.Ids;
 import com.example.persistence.GameRepository;
 import com.example.persistence.MembershipRepository;
 import com.example.persistence.MoveRepository;
 import com.example.persistence.TxRunner;
-
+import com.example.core.domain.ArticlesRepository;
+import com.example.core.domain.GameCommandServiceImpl;
 import java.util.Objects;
-
+import com.example.persistence.DatabaseInitializer;
+import com.example.core.domain.ArticlesRepositoryImpl;
 public class GameCommandServiceImpl implements GameCommandService {
+
+    private final WikipediaService wikipedia;
 
     private final TxRunner tx;
     private final GameRepository games;
@@ -20,92 +31,115 @@ public class GameCommandServiceImpl implements GameCommandService {
     private final MoveRepository moves;
     private final LinksRepository links;
     private final VisitedArticlesRepository visited;
-    public GameCommandServiceImpl(TxRunner tx,
-                              GameRepository games,
-                              MembershipRepository members,
-                              MoveRepository moves,
-                              LinksRepository links,
-                              VisitedArticlesRepository visited) {
-    this.tx = Objects.requireNonNull(tx);
-    this.games = Objects.requireNonNull(games);
-    this.members = Objects.requireNonNull(members);
-    this.moves = Objects.requireNonNull(moves);
-    this.links = Objects.requireNonNull(links);
-    this.visited = Objects.requireNonNull(visited);
-}
+    private final ArticlesRepository articles; // ✅ field exists now
 
-    @Override
-    public CreateGameResult createGame(String playerIdString) {
-        requireNonBlank(playerIdString, "playerId");
-
-        return tx.inTransaction(conn -> {
-            long pid = Ids.parseLongOrLookupPlayerId(conn, playerIdString);
-
-            // TODO: choose these properly (maybe from msg.payload later)
-            long startArticleId = 5;
-            Long targetArticleId = 7L;
-
-            long gid = games.insertGame(conn, startArticleId, targetArticleId, pid, "PENDING");
-            members.addPlayer(conn, gid, pid);
-
-            GameState state = games.loadGameState(conn, gid);
-            return new CreateGameResult(Long.toString(gid), state);
-        });
-    }
-
-    @Override
-    public GameState joinGame(String gameIdString, String playerIdString) {
-        requireNonBlank(gameIdString, "gameId");
-        requireNonBlank(playerIdString, "playerId");
-
-        return tx.inTransaction(conn -> {
-            long gid = Ids.parseLongId(gameIdString, "gameId");
-            long pid = Ids.parseLongOrLookupPlayerId(conn, playerIdString);
-
-            if (!games.gameExists(conn, gid)) {
-                throw new IllegalArgumentException("Game not found: " + gid);
-            }
-
-            String status = games.getGameState(conn, gid);
-            if ("FINISHED".equals(status)) {
-                throw new IllegalArgumentException("Game already finished");
-            }
-
-            members.addPlayer(conn, gid, pid);
-            return games.loadGameState(conn, gid);
-        });
-    }
-
-    @Override
-    public GameState startGame(String gameIdString, String playerIdString) {
-        requireNonBlank(gameIdString, "gameId");
-        requireNonBlank(playerIdString, "playerId");
-
-        return tx.inTransaction(conn -> {
-            long gid = Ids.parseLongId(gameIdString, "gameId");
-            long pid = Ids.parseLongOrLookupPlayerId(conn, playerIdString);
-
-            if (!games.gameExists(conn, gid)) {
-                throw new IllegalArgumentException("Game not found: " + gid);
-            }
-
-            if (!members.isMember(conn, gid, pid)) {
-                throw new IllegalArgumentException("Player not in game");
-            }
-
-            String status = games.getGameState(conn, gid);
-            if ("STARTED".equals(status)) return games.loadGameState(conn, gid);
-            if ("FINISHED".equals(status)) throw new IllegalArgumentException("Game already finished");
-
-            games.setGameStarted(conn, gid);
-            return games.loadGameState(conn, gid);
-        });
+    public GameCommandServiceImpl(
+            TxRunner tx,
+            GameRepository games,
+            MembershipRepository members,
+            MoveRepository moves,
+            LinksRepository links,
+            VisitedArticlesRepository visited,
+            ArticlesRepository articles,
+            WikipediaService wikipedia
+    ) {
+        this.tx = Objects.requireNonNull(tx);
+        this.games = Objects.requireNonNull(games);
+        this.members = Objects.requireNonNull(members);
+        this.moves = Objects.requireNonNull(moves);
+        this.links = Objects.requireNonNull(links);
+        this.visited = Objects.requireNonNull(visited);
+        this.articles = Objects.requireNonNull(articles);
+        this.wikipedia = Objects.requireNonNull(wikipedia);
     }
 
 @Override
-public MoveResult applyMove(String gameIdStr, String playerIdStr,
-                            long fromId, long toId) {
+public CreateGameResult createGame(String playerIdString, String startTitle, String targetTitle) {
+    requireNonBlank(playerIdString, "playerId");
+    requireNonBlank(startTitle, "startTitle");
+    requireNonBlank(targetTitle, "targetTitle");
 
+    // Validate via wiki first (cheap, avoids creating dead games)
+    if (!wikipedia.validateGamePages(startTitle, targetTitle)) {
+        throw new IllegalArgumentException("Start or target page does not exist");
+    }
+
+    return tx.inTransaction(conn -> {
+long pid = members.ensurePlayer(conn, playerIdString);
+        // Resolve wiki page info (gets canonical title + page id)
+    java.util.Map<String, Object> startInfo  = wikipedia.getPageInfo(startTitle);
+    java.util.Map<String, Object> targetInfo = wikipedia.getPageInfo(targetTitle);
+
+        if (Boolean.FALSE.equals(startInfo.get("exists")) || Boolean.FALSE.equals(targetInfo.get("exists"))) {
+            throw new IllegalArgumentException("Start or target page does not exist");
+        }
+
+        long startWikiId  = ((Number) startInfo.get("id")).longValue();
+        long targetWikiId = ((Number) targetInfo.get("id")).longValue();
+
+        String canonicalStart  = (String) startInfo.get("title");
+        String canonicalTarget = (String) targetInfo.get("title");
+
+        // Store/resolve into your article ids (needs ArticlesRepository)
+        long startArticleId  = articles.upsertArticle(conn, startWikiId, canonicalStart, canonicalStart);
+        long targetArticleId = articles.upsertArticle(conn, targetWikiId, canonicalTarget, canonicalTarget);
+
+        long gid = games.insertGame(conn, startArticleId, targetArticleId, pid, "PENDING");
+        members.addPlayer(conn, gid, pid);
+
+        // Optional warm cache
+        wikipedia.getLinksFromPage(canonicalStart);
+
+        GameState state = games.loadGameState(conn, gid);
+        return new CreateGameResult(Long.toString(gid), state);
+    });
+}
+
+public GameState joinGame(String playerIdString, String gameIdString) {
+    requireNonBlank(playerIdString, "playerId");
+    requireNonBlank(gameIdString, "gameId");
+
+    return tx.inTransaction(conn -> {
+        long gid = Long.parseLong(gameIdString);
+
+        if (!games.gameExists(conn, gid)) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameIdString);
+        }
+
+        long pid = members.ensurePlayer(conn, playerIdString);
+        members.addPlayer(conn, gid, pid);
+
+        return games.loadGameState(conn, gid);
+    });
+}
+
+public GameState startGame(String playerIdString, String gameIdString) {
+    requireNonBlank(playerIdString, "playerId");
+    requireNonBlank(gameIdString, "gameId");
+
+    return tx.inTransaction(conn -> {
+        long gid = Long.parseLong(gameIdString);
+
+        if (!games.gameExists(conn, gid)) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameIdString);
+        }
+
+        long pid = members.ensurePlayer(conn, playerIdString);
+
+        // Optional but recommended: only players in the game can start it
+        if (!members.isInGame(conn, gid, pid)) {
+            throw new IllegalArgumentException("Player is not in this game");
+        }
+
+        // Transition to ACTIVE (idempotent)
+        games.startGame(conn, gid);
+
+        return games.loadGameState(conn, gid);
+    });
+}
+
+@Override
+public MoveResult applyMove(String gameIdStr, String playerIdStr, long fromId, long toId) {
     requireNonBlank(gameIdStr, "gameId");
     requireNonBlank(playerIdStr, "playerId");
 
@@ -113,53 +147,90 @@ public MoveResult applyMove(String gameIdStr, String playerIdStr,
         long gid = Ids.parseLongId(gameIdStr, "gameId");
         long pid = Ids.parseLongOrLookupPlayerId(conn, playerIdStr);
 
-        // 1) Game must be started
+        // 1) started?
         String gameState = games.getGameState(conn, gid);
-        if (!"STARTED".equals(gameState)) {
-            throw new IllegalArgumentException("Game not started");
+        if (!"ACTIVE".equalsIgnoreCase(gameState) && !"STARTED".equalsIgnoreCase(gameState)) {
+            throw new IllegalArgumentException("Game not started (state=" + gameState + ")");
         }
 
-        // 2) Player must be in game
-        if (!members.isMember(conn, gid, pid)) {
-            throw new IllegalArgumentException("Player not in game");
-        }
 
-        // 3) Derive current page
+        // 2) membership?
+        if (!members.isMember(conn, gid, pid)) throw new IllegalArgumentException("Player not in game");
+
+        // 3) server-derived current page
         Long last = moves.findLastToArticle(conn, gid, pid);
-        long current = (last != null)
-                ? last
-                : games.getStartArticleId(conn, gid);
+        long current = (last != null) ? last : games.getStartArticleId(conn, gid);
 
         if (current != fromId) {
-            throw new IllegalArgumentException(
-                "Illegal move: fromArticleId=" + fromId +
-                " but current page is " + current
-            );
+            throw new IllegalArgumentException("Illegal move: fromArticleId=" + fromId + " but current page is " + current);
         }
 
-        // 4) Link must exist
+        // 4) validate edge (DB first, then Wikipedia fallback)
         if (!links.linkExists(conn, fromId, toId)) {
-            throw new IllegalArgumentException(
-                "Illegal move: no link from " + fromId + " to " + toId
-            );
+            String fromTitle = articles.getTitleById(conn, fromId);
+            String toTitle   = articles.getTitleById(conn, toId);
+
+            if (!wikipedia.isValidMove(fromTitle, toTitle)) {
+                throw new IllegalArgumentException("Illegal move: no link from " + fromId + " to " + toId);
+            }
+
+            // cache the discovered link
+            links.insertLink(conn, fromId, toId);
         }
 
-        // 5) Insert move
+        // 5) insert move
         int moveSeq = moves.nextMoveSeq(conn, gid);
-        long moveId = moves.insertMove(conn, gid, pid,
-                                       moveSeq, fromId, toId, "OK");
+        long moveId = moves.insertMove(conn, gid, pid, moveSeq, fromId, toId, "OK");
 
-        // 6) Derived updates
+        // 6) derived updates
         members.incrementStepsTaken(conn, gid, pid);
         visited.upsertVisited(conn, gid, toId, moveId);
 
-        // 7) Win condition
+        // 7) win check
         games.tryFinishIfTargetReached(conn, gid, pid, toId);
 
-        // 8) Return new state
+        // 8) return new state snapshot
         GameState newState = games.loadGameState(conn, gid);
         return new MoveResult(gameIdStr, playerIdStr, fromId, toId, newState);
     });
+}
+@Override
+public GameCommandServiceImpl buildGameService() {
+    try {
+        // DB already initialized in start(), but safe if called again
+        DatabaseInitializer.initialize();
+
+        MembershipRepository playerRepo = new DuckDbMembershipRepository();
+        GameRepository gameRepo = new DuckDbGameRepository(playerRepo); // FIX: was members
+        MoveRepository movesRepo = new DuckDbMoveRepository();
+        LinksRepository linksRepo = new LinksRepositoryImpl();
+        VisitedArticlesRepository visitedRepo = new VisitedArticlesRepositoryImpl();
+        ArticlesRepository articleRepo = new ArticlesRepositoryImpl();
+
+        // TxRunner needs a ConnectionProvider
+        TxRunner txRunner = new TxRunner(DatabaseInitializer::getConnection);
+
+        // WikipediaService: minimal stub to compile.
+        // Replace with your real implementation if you have one.
+        WikipediaService wikiService = new WikipediaService() {
+            // Implement required methods; for now throw so you notice if GUI hits them.
+            // Your IDE will show required overrides.
+        };
+
+        return new GameCommandServiceImpl(
+                txRunner,
+                gameRepo,
+                playerRepo,
+                movesRepo,
+                linksRepo,
+                visitedRepo,
+                articleRepo,
+                wikiService
+        );
+
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to build GameCommandService for GUI", e);
+    }
 }
 
     private static void requireNonBlank(String s, String field) {

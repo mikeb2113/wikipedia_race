@@ -4,8 +4,11 @@ package com.example.websocket;
 import com.example.core.InMemoryGameService;*/
 import com.example.websocket.WebSocketMessageHandler;
 
-import main.java.com.example.core.domain.GameCommandService;
-import main.java.com.example.core.domain.GameCommandServiceImpl;
+import com.example.core.domain.ArticlesRepository;
+import wiki.WikipediaService;
+
+import com.example.core.domain.GameCommandService;
+import com.example.core.domain.GameCommandServiceImpl;
 import com.example.persistence.LinksRepository;
 import com.example.persistence.VisitedArticlesRepository;
 
@@ -21,6 +24,7 @@ import com.example.persistence.MembershipRepository;
 import com.example.persistence.MoveRepository;
 import com.example.persistence.TxRunner;
 import com.example.persistence.DatabaseInitializer;
+import com.example.core.domain.ArticlesRepositoryImpl;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -42,16 +46,30 @@ public GameWebSocketServer(int port) {
     GameRepository gameRepo = new DuckDbGameRepository(memberRepo);
     MoveRepository moveRepo = new DuckDbMoveRepository();
 
-    // ✅ add these two
-    LinksRepositoryImpl linksRepo = new LinksRepositoryImpl();
-    VisitedArticlesRepositoryImpl visitedRepo = new VisitedArticlesRepositoryImpl();
+    LinksRepository linksRepo = new LinksRepositoryImpl();
+    VisitedArticlesRepository visitedRepo = new VisitedArticlesRepositoryImpl();
+
+    // ✅ NEW: articles repo
+    ArticlesRepository articlesRepo = new ArticlesRepositoryImpl(); // you must have this class
+
+    // ✅ NEW: wikipedia service
+    WikipediaService wikipedia = new WikipediaService();
 
     // ---- Persistence wiring ----
     ConnectionProvider cp = () -> DatabaseInitializer.getConnection();
     TxRunner tx = new TxRunner(cp);
 
     GameCommandService gameService =
-        new GameCommandServiceImpl(tx, gameRepo, memberRepo, moveRepo, linksRepo, visitedRepo);
+        new GameCommandServiceImpl(
+            tx,
+            gameRepo,
+            memberRepo,
+            moveRepo,
+            linksRepo,
+            visitedRepo,
+            articlesRepo,
+            wikipedia
+        );
 
     // ---- WebSocket handler ----
     this.handler = new WebSocketMessageHandler(gameService);

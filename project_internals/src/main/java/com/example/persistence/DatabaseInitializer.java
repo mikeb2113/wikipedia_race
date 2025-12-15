@@ -13,59 +13,55 @@ public final class DatabaseInitializer {
 
     private static final String DB_FILE = "./data/wikirace.duckdb";
     private static final String DB_URL = "jdbc:duckdb:" + DB_FILE;
-
+private static volatile boolean INITIALIZED = false;
     private DatabaseInitializer() {}
 
     public static Connection getConnection() throws SQLException {
         String url = "jdbc:duckdb:./data/wikirace.duckdb";
         System.out.println("[DB] Opening DuckDB connection at: " + url);
+        System.out.println("[DB] CWD=" + System.getProperty("user.dir"));
+        System.out.println("[DB] DB_URL=" + DB_URL);
+        System.out.println("[DB] DB_FILE_ABS=" + java.nio.file.Path.of("./data/wikirace.duckdb").toAbsolutePath());
         return DriverManager.getConnection(url);
     }
 
-    public static void initialize() throws SQLException, IOException {
-        System.out.println("[DB] Ensuring data directory exists...");
-        Files.createDirectories(Path.of("./data"));
-
-        try (Connection conn = getConnection()) {
-
-            System.out.println("[DB] Connection established.");
-            conn.setAutoCommit(false);
-
-            try (Statement st = conn.createStatement()) {
-
-                System.out.println("[DB] Loading schema.sql from classpath...");
-                InputStream in = DatabaseInitializer.class
-                        .getClassLoader()
-                        .getResourceAsStream("schema.sql");
-
-                if (in == null) {
-                    throw new IOException("[DB] ERROR: schema.sql not found in classpath");
-                }
-
-                String ddl = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                System.out.println("[DB] Schema read. Length = " + ddl.length() + " chars");
-
-                String[] statements = ddl.split(";");
-                System.out.println("[DB] Found " + statements.length + " SQL statements.");
-
-                int counter = 1;
-                for (String sql : statements) {
-                    sql = sql.trim();
-                    if (sql.isEmpty()) continue;
-
-                    System.out.println("[DB] Executing SQL statement " + counter + "...");
-                    // Optional: print SQL for debugging
-                    // System.out.println(sql);
-                    
-                    st.execute(sql);
-                    counter++;
-                }
-            }
-
-            System.out.println("[DB] Committing changes...");
-            conn.commit();
-            System.out.println("[DB] Schema successfully applied.");
-        }
+    public static synchronized void initialize() throws SQLException, IOException {
+    if (INITIALIZED) {
+        System.out.println("[DB] initialize() skipped (already initialized)");
+        return;
     }
+
+    System.out.println("[DB] Ensuring data directory exists...");
+    Files.createDirectories(Path.of("./data"));
+
+    try (Connection conn = getConnection()) {
+        System.out.println("[DB] Connection established.");
+        conn.setAutoCommit(false);
+
+        try (Statement st = conn.createStatement()) {
+            System.out.println("[DB] Loading schema.sql from classpath...");
+            InputStream in = DatabaseInitializer.class.getClassLoader().getResourceAsStream("schema.sql");
+            if (in == null) throw new IOException("[DB] ERROR: schema.sql not found in classpath");
+
+            String ddl = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            String[] statements = ddl.split(";");
+            int counter = 1;
+
+            for (String sql : statements) {
+                sql = sql.trim();
+                if (sql.isEmpty()) continue;
+
+                System.out.println("[DB] Executing SQL statement " + counter + ":");
+                System.out.println(sql); // <-- IMPORTANT
+                st.execute(sql);
+                counter++;
+            }
+        }
+
+        conn.commit();
+        System.out.println("[DB] Schema successfully applied.");
+        INITIALIZED = true;
+    }
+}
 
 }

@@ -1,5 +1,5 @@
-package main.java.com.example.core.domain;
-import main.java.com.example.core.domain.GameState;
+package com.example.core.domain;
+import com.example.core.domain.GameState;
 public class CreateGameResult {
     public final String gameId;
     public final GameState state;

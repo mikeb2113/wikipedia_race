@@ -20,6 +20,17 @@ public class DuckDbMembershipRepository implements MembershipRepository {
             ps.executeUpdate();
         }
     }
+    public boolean isInGame(Connection conn, long gid, long pid) throws Exception {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT 1 FROM plays WHERE game_id = ? AND player_id = ? AND left_at IS NULL"
+    )) {
+        ps.setLong(1, gid);
+        ps.setLong(2, pid);
+        try (ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        }
+    }
+}
 @Override
 public void incrementStepsTaken(Connection conn, long gameId, long playerId) throws Exception {
     try (PreparedStatement ps = conn.prepareStatement(
@@ -43,7 +54,34 @@ public void incrementStepsTaken(Connection conn, long gameId, long playerId) thr
             }
         }
     }
+@Override
+public long ensurePlayer(Connection conn, String username) throws Exception {
 
+    // 1) Try to find existing player
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT player_id FROM players WHERE username = ?"
+    )) {
+        ps.setString(1, username);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    // 2) Insert new player
+    try (PreparedStatement ps = conn.prepareStatement(
+            "INSERT INTO players (username) VALUES (?) RETURNING player_id"
+    )) {
+        ps.setString(1, username);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (!rs.next()) {
+                throw new IllegalStateException("Failed to insert player: " + username);
+            }
+            return rs.getLong(1);
+        }
+    }
+}
     @Override
     public List<String> listUsernames(Connection conn, long gameId) throws Exception {
         List<String> out = new ArrayList<>();

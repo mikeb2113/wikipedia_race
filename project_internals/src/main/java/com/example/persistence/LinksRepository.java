@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface LinksRepository {
     List<Long> getNeighbors(Connection conn, long fromArticleId) throws Exception;
-
+    void insertLink(Connection conn, long fromId, long toId); // ✅ add this
     // for applyMove legality check:
     boolean linkExists(Connection conn, long fromId, long toId) throws Exception;
 }
