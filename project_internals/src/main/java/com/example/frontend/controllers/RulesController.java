@@ -14,7 +14,7 @@ public class RulesController {
     private void handleBack() {
         SceneNavigator.switchScene(
                 backButton,
-                "/ui/views/MainMenuView.fxml"
+                "/views/MainMenuView.fxml"
         );
     }
 }

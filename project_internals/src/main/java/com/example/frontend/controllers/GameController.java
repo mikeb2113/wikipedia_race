@@ -76,7 +76,7 @@ public class GameController {
     private void handleGiveUp() {
         SceneNavigator.switchScene(
                 articleTitleLabel,
-                "/ui/views/ResultsView.fxml"
+                "/views/ResultsView.fxml"
         );
     }
 

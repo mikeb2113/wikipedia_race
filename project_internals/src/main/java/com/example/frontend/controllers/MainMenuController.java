@@ -18,7 +18,7 @@ public class MainMenuController {
     private void handleCreateLobby() {
         SceneNavigator.switchScene(
                 welcomeLabel,
-                "/ui/views/CreateLobbyView.fxml"
+                "/views/CreateLobbyView.fxml"
         );
     }
 
@@ -26,7 +26,7 @@ public class MainMenuController {
     private void handleJoinLobby() {
         SceneNavigator.switchScene(
                 welcomeLabel,
-                "/ui/views/JoinLobbyView.fxml"
+                "/views/JoinLobbyView.fxml"
         );
     }
 
@@ -34,7 +34,7 @@ public class MainMenuController {
     private void handleHowToPlay() {
         SceneNavigator.switchScene(
                 welcomeLabel,
-                "/ui/views/RulesView.fxml"
+                "/views/RulesView.fxml"
         );
     }
 
@@ -42,7 +42,7 @@ public class MainMenuController {
     private void handleLogout() {
         SceneNavigator.switchScene(
                 welcomeLabel,
-                "/ui/views/LandingView.fxml"
+                "/views/LandingView.fxml"
         );
     }
 }

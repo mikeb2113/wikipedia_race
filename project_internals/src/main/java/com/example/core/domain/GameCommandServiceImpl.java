@@ -4,15 +4,23 @@ import wiki.WikipediaService;
 
 import com.example.persistence.LinksRepository;
 import com.example.persistence.VisitedArticlesRepository;
+
+import com.example.persistence.DuckDbMembershipRepository;
+import com.example.persistence.DuckDbMoveRepository;
+import com.example.persistence.DuckDbGameRepository;
+import com.example.persistence.LinksRepositoryImpl;
+import com.example.persistence.VisitedArticlesRepositoryImpl;
+
 import com.example.persistence.Ids;
 import com.example.persistence.GameRepository;
 import com.example.persistence.MembershipRepository;
 import com.example.persistence.MoveRepository;
 import com.example.persistence.TxRunner;
 import com.example.core.domain.ArticlesRepository;
-
+import com.example.core.domain.GameCommandServiceImpl;
 import java.util.Objects;
-
+import com.example.persistence.DatabaseInitializer;
+import com.example.core.domain.ArticlesRepositoryImpl;
 public class GameCommandServiceImpl implements GameCommandService {
 
     private final WikipediaService wikipedia;
@@ -185,6 +193,44 @@ public MoveResult applyMove(String gameIdStr, String playerIdStr, long fromId, l
         GameState newState = games.loadGameState(conn, gid);
         return new MoveResult(gameIdStr, playerIdStr, fromId, toId, newState);
     });
+}
+@Override
+public GameCommandServiceImpl buildGameService() {
+    try {
+        // DB already initialized in start(), but safe if called again
+        DatabaseInitializer.initialize();
+
+        MembershipRepository playerRepo = new DuckDbMembershipRepository();
+        GameRepository gameRepo = new DuckDbGameRepository(playerRepo); // FIX: was members
+        MoveRepository movesRepo = new DuckDbMoveRepository();
+        LinksRepository linksRepo = new LinksRepositoryImpl();
+        VisitedArticlesRepository visitedRepo = new VisitedArticlesRepositoryImpl();
+        ArticlesRepository articleRepo = new ArticlesRepositoryImpl();
+
+        // TxRunner needs a ConnectionProvider
+        TxRunner txRunner = new TxRunner(DatabaseInitializer::getConnection);
+
+        // WikipediaService: minimal stub to compile.
+        // Replace with your real implementation if you have one.
+        WikipediaService wikiService = new WikipediaService() {
+            // Implement required methods; for now throw so you notice if GUI hits them.
+            // Your IDE will show required overrides.
+        };
+
+        return new GameCommandServiceImpl(
+                txRunner,
+                gameRepo,
+                playerRepo,
+                movesRepo,
+                linksRepo,
+                visitedRepo,
+                articleRepo,
+                wikiService
+        );
+
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to build GameCommandService for GUI", e);
+    }
 }
 
     private static void requireNonBlank(String s, String field) {

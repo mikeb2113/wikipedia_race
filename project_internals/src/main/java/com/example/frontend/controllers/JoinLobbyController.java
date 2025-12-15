@@ -28,7 +28,7 @@ public class JoinLobbyController {
 
         SceneNavigator.switchScene(
                 lobbyCodeField,
-                "/ui/views/LobbyView.fxml"
+                "/views/LobbyView.fxml"
         );
     }
 
@@ -36,7 +36,7 @@ public class JoinLobbyController {
     private void handleBack() {
         SceneNavigator.switchScene(
                 lobbyCodeField,
-                "/ui/views/MainMenuView.fxml"
+                "/views/MainMenuView.fxml"
         );
     }
 }

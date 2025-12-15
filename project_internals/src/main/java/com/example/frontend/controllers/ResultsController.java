@@ -35,7 +35,7 @@ public class ResultsController {
     private void handlePlayAgain() {
         SceneNavigator.switchScene(
                 timeLabel,
-                "/ui/views/GameView.fxml"
+                "/views/GameView.fxml"
         );
     }
 
@@ -43,7 +43,7 @@ public class ResultsController {
     private void handleExitToMenu() {
         SceneNavigator.switchScene(
                 timeLabel,
-                "/ui/views/MainMenuView.fxml"
+                "/views/MainMenuView.fxml"
         );
     }
 }

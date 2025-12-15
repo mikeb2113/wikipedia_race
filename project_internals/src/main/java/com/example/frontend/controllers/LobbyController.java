@@ -40,7 +40,7 @@ public class LobbyController {
     private void handleLeaveLobby() {
         SceneNavigator.switchScene(
                 player1Label,
-                "/ui/views/MainMenuView.fxml"
+                "/views/MainMenuView.fxml"
         );
     }
 }

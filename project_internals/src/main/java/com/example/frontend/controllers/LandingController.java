@@ -6,7 +6,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
+import com.example.frontend.AppContext;
 import ui.util.SceneNavigator;
 
 public class LandingController {
@@ -16,21 +16,21 @@ public class LandingController {
 
     @FXML
     private void handleLogin() {
-        openModal("/ui/views/LoginView.fxml", "Log In");
+        openModal("/views/LoginView.fxml", "Log In");
     }
 
     @FXML
     private void handleRegister() {
-        openModal("/ui/views/RegisterView.fxml", "Register");
+        openModal("/views/RegisterView.fxml", "Register");
     }
 
     private void openModal(String fxml, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Scene scene = new Scene(loader.load());
-            scene.getStylesheets().add(
-                    ClassLoader.getSystemResource("ui/styles/app.css").toExternalForm()
-            );
+            /*scene.getStylesheets().add(
+                    ClassLoader.class.getResource("/styles/app.css").toExternalForm()
+            );*/
 
             Stage dialog = new Stage();
             dialog.setScene(scene);
@@ -47,7 +47,7 @@ public class LandingController {
     private void handleHowToPlay() {
         SceneNavigator.switchScene(
                 howToPlayButton,
-                "/ui/views/RulesView.fxml"
+                "/views/RulesView.fxml"
         );
     }
 }

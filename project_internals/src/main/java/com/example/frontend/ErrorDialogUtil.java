@@ -11,7 +11,7 @@ public class ErrorDialogUtil {
     public static void showError(String message) {
         try {
             FXMLLoader loader = new FXMLLoader(
-                    ErrorDialogUtil.class.getResource("/ui/views/ErrorDialog.fxml")
+                    ErrorDialogUtil.class.getResource("/views/ErrorDialog.fxml")
             );
 
             Scene scene = new Scene(loader.load());
