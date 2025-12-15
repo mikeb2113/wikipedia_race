@@ -38,24 +38,57 @@ public void onMessage(String message) {
 }
 private void handleProtocolMessage(String json) {
 
+    // Always log incoming messages during deadline crunch
+    System.out.println("[WS][IN] " + json);
+
     // ---- CREATE_GAME response ----
     if (json.contains("\"type\":\"GAME_CREATED\"")) {
-
         String reqId = extractField(json, "requestId");
+        String gameId = extractField(json, "gameId");
 
-        if (reqId != null && reqId.equals(AppContext.pendingCreateReqId)) {
+        // If reqId parsing works, respect it. If it doesn't, still store gameId.
+        boolean matches = (reqId != null && reqId.equals(AppContext.pendingCreateReqId));
 
-            String gameId = extractField(json, "gameId");
-
-            System.out.println("[WS] GAME_CREATED received, gameId=" + gameId);
-
+        if (matches || AppContext.lastCreatedGameId == null) {
+            System.out.println("[WS] GAME_CREATED received, reqId=" + reqId + " gameId=" + gameId);
             AppContext.lastCreatedGameId = gameId;
+            AppContext.currentGameId = gameId;
         }
     }
 
-    // Later:
-    // if (json.contains("\"type\":\"GAME_STATE\"")) { ... }
-    // if (json.contains("\"type\":\"PLAYER_JOINED\"")) { ... }
+    // ---- JOIN_GAME response ----
+    // DEADLINE HACK: any GAME_STATE means "join succeeded"
+    if (json.contains("\"type\":\"GAME_STATE\"")) {
+        String reqId = extractField(json, "requestId");
+        String gameId = extractField(json, "gameId"); // may be null if nested in payload
+
+        System.out.println("[WS] GAME_STATE received, reqId=" + reqId + " gameId=" + gameId);
+
+        // Always set state so JoinLobbyController's poll can succeed
+        AppContext.lastGameStateJson = json;
+
+        // Best-effort store gameId
+        if (gameId != null && !gameId.isBlank()) {
+            AppContext.lastJoinedGameId = gameId;
+            AppContext.currentGameId = gameId;
+        }
+    }
+
+    // ---- ERROR (for join, create, anything) ----
+    if (json.contains("\"type\":\"ERROR\"")) {
+        String reqId = extractField(json, "requestId");
+
+        System.out.println("[WS] ERROR received, reqId=" + reqId + " json=" + json);
+
+        // Always store it so UI can show something
+        AppContext.lastErrorJson = json;
+    }
+
+    // Optional: if your server broadcasts GAME_STARTED
+    if (json.contains("\"type\":\"GAME_STARTED\"")) {
+        System.out.println("[WS] GAME_STARTED received");
+        AppContext.gameStarted = true; // add boolean in AppContext if you want
+    }
 }
 private static String extractField(String json, String field) {
     String key = "\"" + field + "\"";
